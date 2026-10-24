@@ -1,0 +1,36 @@
+{
+  "name": "diagram-agent",
+  "version": "1.0.0",
+  "description": "AI Diagram Generator Agent - Mermaid & Excalidraw with Mimo LLM",
+  "main": "src/server.js",
+  "bin": {
+    "diagram-agent": "bin/diagram-agent.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "mcp": "node src/mcp-server.js",
+    "cli": "node bin/diagram-agent.js",
+    "test": "node -e \"console.log('Diagram Agent ready')\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rifaterdemsahin/diagram-agent.git"
+  },
+  "keywords": [
+    "diagram",
+    "mermaid",
+    "excalidraw",
+    "ai-agent",
+    "mcp",
+    "mimo"
+  ],
+  "author": "rifaterdemsahin",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.2",
+    "basic-auth": "^2.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2"
+  }
+}

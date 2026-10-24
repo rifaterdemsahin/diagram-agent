@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "diagram-agent": {
+      "command": "node",
+      "args": ["src/mcp-server.js"],
+      "env": {
+        "MIMO_BASE_URL": "https://token-plan-ams.xiaomimimo.com/v1",
+        "MIMO_MODEL": "mimo-v2.6-flash"
+      }
+    }
+  }
+}

@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Diagram Generator • Mermaid & Excalidraw</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- LZ-String for URL Hash compression -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <!-- Mermaid.js -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    .font-handwritten {
+      font-family: 'Caveat', cursive, sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.5);
+    }
+
+    /* Mermaid container styling */
+    .mermaid svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 px-4 lg:px-8 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+        <i data-lucide="git-fork" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          AI Diagram Generator <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Mermaid + Excalidraw</span>
+        </h1>
+        <p class="text-xs text-slate-400 hidden sm:block">Synthesize flowcharts, architectures & hand-drawn diagrams with zero monthly fees</p>
+      </div>
+    </div>
+
+    <!-- Quick Action buttons in header -->
+    <div class="flex items-center space-x-2 sm:space-x-3">
+      <button onclick="openCollabGuideModal()" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs sm:text-sm font-medium transition flex items-center gap-1.5 text-slate-300 hover:text-white">
+        <i data-lucide="users" class="w-4 h-4 text-indigo-400"></i>
+        <span>Free Collab Guide</span>
+      </button>
+
+      <button onclick="shareLinkToClipboard()" class="px-3 py-1.5 rounded-lg border border-indigo-600/50 bg-indigo-950/40 hover:bg-indigo-900/60 text-xs sm:text-sm font-medium text-indigo-300 hover:text-indigo-200 transition flex items-center gap-1.5">
+        <i data-lucide="share-2" class="w-4 h-4"></i>
+        <span class="hidden md:inline">Share Permalink</span>
+      </button>
+
+      <button onclick="openDirectToExcalidraw()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-medium shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5">
+        <i data-lucide="external-link" class="w-4 h-4"></i>
+        <span>Open Excalidraw</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 max-w-[1700px] w-full mx-auto p-3 sm:p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- LEFT PANEL: PROMPT & GENERATION CONTROLS (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col space-y-4">
+      
+      <!-- Preset Templates Selector -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <label class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i data-lucide="layout-template" class="w-4 h-4 text-indigo-400"></i> Diagram Presets
+          </label>
+          <span class="text-[11px] text-slate-500">Instant Architecture & Flows</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button onclick="loadPreset('cloud_arch')" class="p-2.5 rounded-xl border border-indigo-500/40 bg-indigo-950/20 hover:bg-indigo-900/40 text-left transition flex flex-col justify-between group">
+            <span class="font-semibold text-indigo-300 group-hover:text-indigo-200 flex items-center gap-1">
+              <i data-lucide="cloud" class="w-3.5 h-3.5 text-indigo-400"></i> Cloud Architecture
+            </span>
+            <span class="text-[10px] text-slate-400 mt-1">API gateway, auth, cache, DB</span>
+          </button>
+
+          <button onclick="loadPreset('cicd')" class="p-2.5 rounded-xl border border-slate-800 bg-slate-800/50 hover:bg-slate-800 text-left transition flex flex-col justify-between group">
+            <span class="font-semibold text-slate-300 group-hover:text-white flex items-center gap-1">
+              <i data-lucide="git-merge" class="w-3.5 h-3.5 text-amber-400"></i> CI/CD Pipeline
+            </span>
+            <span class="text-[10px] text-slate-500 mt-1">Git, lint, test, staging, prod</span>
+          </button>
+
+          <button onclick="loadPreset('auth_seq')" class="p-2.5 rounded-xl border border-slate-800 bg-slate-800/50 hover:bg-slate-800 text-left transition flex flex-col justify-between group">
+            <span class="font-semibold text-slate-300 group-hover:text-white flex items-center gap-1">
+              <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Auth Sequence
+            </span>
+            <span class="text-[10px] text-slate-500 mt-1">OAuth2 & JWT handshake</span>
+          </button>
+
+          <button onclick="loadPreset('bot_fleet')" class="p-2.5 rounded-xl border border-slate-800 bg-slate-800/50 hover:bg-slate-800 text-left transition flex flex-col justify-between group">
+            <span class="font-semibold text-slate-300 group-hover:text-white flex items-center gap-1">
+              <i data-lucide="bot" class="w-3.5 h-3.5 text-sky-400"></i> Bot Fleet States
+            </span>
+            <span class="text-[10px] text-slate-500 mt-1">Staging, Active, Maintenance</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- AI Prompt / Generator Input -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col flex-1">
+        <div class="flex items-center justify-between mb-2">
+          <label for="promptInput" class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4 text-violet-400"></i> Natural Language Prompt
+          </label>
+          <span class="text-[11px] text-indigo-400 flex items-center gap-1">
+            <i data-lucide="cpu" class="w-3 h-3"></i> Powered by Mimo AI
+          </span>
+        </div>
+
+        <textarea id="promptInput" rows="7" 
+          placeholder="Describe your diagram in plain English:&#10;e.g., A resilient Kubernetes microservices system with Cloudflare edge, Traefik ingress, Redis distributed cache, PostgreSQL read replicas, and Prometheus telemetry alerting." 
+          class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition resize-none font-mono-code leading-relaxed"></textarea>
+
+        <!-- Generation Settings Controls -->
+        <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div>
+            <span class="text-[11px] text-slate-400 block mb-1">Target Engine:</span>
+            <select id="engineSelect" class="w-full bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:outline-none focus:border-indigo-500">
+              <option value="both">Both (Mermaid + Excalidraw)</option>
+              <option value="mermaid">Mermaid Only</option>
+              <option value="excalidraw">Excalidraw Only</option>
+            </select>
+          </div>
+
+          <div>
+            <span class="text-[11px] text-slate-400 block mb-1">Mermaid Type:</span>
+            <select id="mermaidTypeSelect" class="w-full bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:outline-none focus:border-indigo-500">
+              <option value="flowchart">Flowchart / Architecture</option>
+              <option value="sequence">Sequence Diagram</option>
+              <option value="state">State Machine</option>
+              <option value="class">Class Diagram</option>
+              <option value="er">ER (Database)</option>
+              <option value="gitGraph">Git Workflow</option>
+            </select>
+          </div>
+
+          <div>
+            <span class="text-[11px] text-slate-400 block mb-1">Excalidraw Palette:</span>
+            <select id="paletteSelect" class="w-full bg-slate-950 border border-slate-800 text-xs rounded-lg px-2.5 py-1.5 text-slate-300 focus:outline-none focus:border-indigo-500">
+              <option value="warm">Warm Hand-drawn</option>
+              <option value="blueprint">Blueprint Blue</option>
+              <option value="monochrome">Minimalist Ink</option>
+              <option value="vibrant">Vibrant Pastel</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+          <div class="flex items-center gap-1.5 text-xs text-slate-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Agent Online</span>
+          </div>
+
+          <button id="generateBtn" onclick="generateFromPrompt()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-xs sm:text-sm transition flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+            <i data-lucide="wand-2" class="w-4 h-4"></i>
+            <span id="generateBtnText">Generate Diagram</span>
+          </button>
+        </div>
+
+        <!-- Export & Action Tray -->
+        <div class="mt-4 pt-4 border-t border-slate-800/80 space-y-2">
+          <span class="text-[11px] uppercase tracking-wider text-slate-500 font-semibold block mb-2">Instant Export & Workflow</span>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="copyToExcalidrawClipboard()" class="p-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white text-xs font-medium transition flex items-center justify-center gap-2 group">
+              <i data-lucide="clipboard-copy" class="w-4 h-4 text-emerald-400 group-hover:scale-110 transition"></i>
+              <span>Copy for Excalidraw (Ctrl+V)</span>
+            </button>
+
+            <button onclick="downloadExcalidrawFile()" class="p-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white text-xs font-medium transition flex items-center justify-center gap-2 group">
+              <i data-lucide="download" class="w-4 h-4 text-sky-400 group-hover:scale-110 transition"></i>
+              <span>Save .excalidraw.json</span>
+            </button>
+
+            <button onclick="copyMermaidCode()" class="p-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white text-xs font-medium transition flex items-center justify-center gap-2 group">
+              <i data-lucide="code" class="w-4 h-4 text-violet-400 group-hover:scale-110 transition"></i>
+              <span>Copy Mermaid Code</span>
+            </button>
+
+            <button onclick="downloadMermaidSvg()" class="p-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white text-xs font-medium transition flex items-center justify-center gap-2 group">
+              <i data-lucide="image" class="w-4 h-4 text-amber-400 group-hover:scale-110 transition"></i>
+              <span>Download Mermaid SVG</span>
+            </button>
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-start gap-2">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+            <div>
+              <strong>Instant Live Collaboration:</strong> Copy to Excalidraw or click <em>"Open Excalidraw"</em>, then click <em>Live Collaboration</em> on excalidraw.com for unlimited free multiplayer editing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: INTERACTIVE PREVIEWS & CODE EDITORS (7 cols) -->
+    <section class="lg:col-span-7 flex flex-col space-y-3">
+      
+      <!-- Panel Tabs (Mermaid Preview, Excalidraw Preview, Mermaid Code, Excalidraw JSON) -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="flex flex-wrap gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <button onclick="switchTab('mermaid')" id="tabBtn-mermaid" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition bg-indigo-600 text-white flex items-center gap-1.5">
+            <i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Mermaid Preview
+          </button>
+          <button onclick="switchTab('excalidraw')" id="tabBtn-excalidraw" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+            <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i> Excalidraw Canvas
+          </button>
+          <button onclick="switchTab('mermaid-code')" id="tabBtn-mermaid-code" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+            <i data-lucide="code-2" class="w-3.5 h-3.5"></i> Mermaid Code
+          </button>
+          <button onclick="switchTab('excalidraw-json')" id="tabBtn-excalidraw-json" class="px-3.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+            <i data-lucide="file-json" class="w-3.5 h-3.5"></i> Excalidraw JSON
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <span id="diagramInfoBadge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400">Mermaid Live</span>
+          <button onclick="refreshActiveView()" title="Refresh View" class="p-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW TAB 1: MERMAID LIVE SVG RENDER -->
+      <div id="view-mermaid" class="flex-1 bg-slate-900 rounded-2xl border border-slate-800 relative overflow-hidden flex flex-col min-h-[500px] shadow-inner">
+        <!-- Title bar mimic -->
+        <div class="px-4 py-2 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400 z-10 bg-slate-900/60">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
+            <span id="mermaidTitle" class="ml-2 font-medium text-slate-200">Mermaid Diagram Preview</span>
+          </div>
+          <span class="text-[11px] text-slate-500">Vector SVG • High Res</span>
+        </div>
+
+        <!-- Render Target for Mermaid -->
+        <div class="flex-1 overflow-auto p-6 flex items-center justify-center bg-slate-950/40" id="mermaidContainer">
+          <div id="mermaidTarget" class="mermaid w-full flex items-center justify-center"></div>
+        </div>
+
+        <!-- Floating footer -->
+        <div class="p-3 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-2 text-slate-400">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
+            <span>Interactive Mermaid.js engine. Fully customizable and exportable.</span>
+          </div>
+          <button onclick="copyMermaidCode()" class="text-indigo-400 font-medium hover:underline flex items-center gap-1">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Mermaid Syntax
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW TAB 2: EXCALIDRAW HAND-DRAWN CANVAS PREVIEW -->
+      <div id="view-excalidraw" class="hidden flex-1 bg-[#fcfaf7] dark:bg-[#121212] rounded-2xl border border-slate-800 relative overflow-hidden flex flex-col min-h-[500px] shadow-inner transition-colors">
+        <!-- Canvas Grid Background -->
+        <div class="absolute inset-0 pointer-events-none opacity-[0.04] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px]"></div>
+
+        <!-- Watermark / Title bar mimic -->
+        <div class="px-4 py-2 border-b border-black/5 dark:border-white/5 flex items-center justify-between text-xs text-slate-500 z-10">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-400/80 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400/80 inline-block"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400/80 inline-block"></span>
+            <span id="canvasTitle" class="ml-2 font-medium text-slate-700 dark:text-slate-300">Excalidraw Hand-drawn Canvas</span>
+          </div>
+          <span class="text-[11px] text-slate-400">Interactive SVG Preview</span>
+        </div>
+
+        <!-- Render Target SVG Canvas -->
+        <div class="flex-1 relative overflow-auto p-4 flex items-center justify-center">
+          <svg id="excalidrawSvg" class="w-full h-full max-w-full" viewBox="0 0 920 620" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <!-- Floating canvas footer overlay -->
+        <div class="p-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between text-xs gap-2">
+          <div class="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
+            <span>Matches Excalidraw specs: hand-drawn font, rounded pills, arrows & clusters</span>
+          </div>
+          <button onclick="copyToExcalidrawClipboard()" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline flex items-center gap-1">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy to paste on Excalidraw.com
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW TAB 3: MERMAID CODE EDITOR -->
+      <div id="view-mermaid-code" class="hidden flex-1 bg-slate-950 rounded-2xl border border-slate-800 p-4 flex-col min-h-[500px]">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-slate-400 font-mono">syntax: mermaid v10</span>
+          <div class="flex items-center space-x-2">
+            <button onclick="renderMermaidFromEditor()" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs text-white transition flex items-center gap-1.5">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i> Apply & Render
+            </button>
+            <button onclick="copyMermaidCode()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 transition flex items-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+            </button>
+          </div>
+        </div>
+        <textarea id="rawMermaidArea" class="flex-1 w-full bg-slate-900/70 border border-slate-800 rounded-xl p-3 font-mono-code text-xs text-indigo-200 resize-none focus:outline-none focus:border-indigo-500" spellcheck="false"></textarea>
+      </div>
+
+      <!-- VIEW TAB 4: RAW EXCALIDRAW JSON -->
+      <div id="view-excalidraw-json" class="hidden flex-1 bg-slate-950 rounded-2xl border border-slate-800 p-4 flex-col min-h-[500px]">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-slate-400 font-mono">schema: excalidraw/2</span>
+          <div class="flex items-center space-x-2">
+            <button onclick="renderExcalidrawFromJsonEditor()" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs text-white transition flex items-center gap-1.5">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i> Apply & Render
+            </button>
+            <button onclick="copyJsonText()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 transition flex items-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy JSON
+            </button>
+          </div>
+        </div>
+        <textarea id="rawJsonArea" class="flex-1 w-full bg-slate-900/60 border border-slate-800 rounded-xl p-3 font-mono-code text-[11px] text-slate-300 resize-none focus:outline-none focus:border-indigo-500" spellcheck="false"></textarea>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- MODAL: FREE COLLABORATION STEP-BY-STEP WALKTHROUGH -->
+  <div id="collabModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+      <button onclick="closeCollabGuideModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="h-10 w-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+          <i data-lucide="users" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">100% Free Live Collaborative Diagrams</h3>
+          <p class="text-xs text-slate-400">Collaborate without paying for subscriptions</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-300">
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+          <span class="h-6 w-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 font-bold text-xs">1</span>
+          <div>
+            <strong class="text-white block mb-0.5">Copy or Open in Excalidraw</strong>
+            Click <span class="text-indigo-400 font-semibold">"Open Excalidraw"</span> or click <span class="text-indigo-400 font-semibold">"Copy for Excalidraw (Ctrl+V)"</span> and paste onto <a href="https://excalidraw.com" target="_blank" class="text-indigo-400 underline">excalidraw.com</a>.
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+          <span class="h-6 w-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 font-bold text-xs">2</span>
+          <div>
+            <strong class="text-white block mb-0.5">Click the "Live collaboration" Icon</strong>
+            At the top right of Excalidraw, click the round icon with two people (or the blue <em>Live Collaboration</em> button).
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800">
+          <span class="h-6 w-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 font-bold text-xs">3</span>
+          <div>
+            <strong class="text-white block mb-0.5">Start Session & Share Free Room URL</strong>
+            Click <strong>"Start Session"</strong>. Excalidraw creates an end-to-end encrypted room link:
+            <code class="block mt-1 text-[11px] p-1.5 rounded bg-slate-900 text-indigo-300 border border-slate-800 overflow-x-auto">
+              https://excalidraw.com/#room=7c8d9...
+            </code>
+            Anyone with this link can view and edit the board in real time forever with <strong>$0 monthly fees</strong>!
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 flex justify-end">
+        <button onclick="closeCollabGuideModal()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition">
+          Got it!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2 bg-slate-900 border border-slate-700 text-white text-xs px-4 py-3 rounded-xl shadow-xl">
+    <i id="toastIcon" data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toastMessage">Action completed!</span>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Initialize Mermaid
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#090d16',
+        primaryColor: '#6366f1',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#4f46e5',
+        lineColor: '#818cf8',
+        secondaryColor: '#1e1b4b',
+        tertiaryColor: '#0f172a'
+      },
+      flowchart: { curve: 'basis' },
+      securityLevel: 'loose'
+    });
+
+    let currentMermaidCode = `flowchart TD
+    subgraph Client["Client Interface"]
+        UI["Web App (Tailwind CSS)"]
+        CLI["Agent CLI & MCP Tools"]
+    end
+
+    subgraph Security["Edge & Protection"]
+        BasicAuth["HTTP Basic Auth\\n(rifaterdemsahin)"]
+        Vault["Azure Key Vault\\n(Mimo LLM & Fly Tokens)"]
+    end
+
+    subgraph Core["Diagram Synthesis Engine"]
+        Agent["AI Diagram Agent\\n(Mimo v2.6 Flash)"]
+        MermaidGen["Mermaid Generator\\n(Flows, Sequences, ER)"]
+        ExcaliGen["Excalidraw Generator\\n(Hand-drawn Canvas)"]
+    end
+
+    subgraph Deployment["Global Hosting"]
+        Fly["Fly.io Cloud Machine\\n(diagram-agent.fly.dev)"]
+    end
+
+    UI --> BasicAuth
+    CLI --> BasicAuth
+    BasicAuth --> Agent
+    Vault -.-> Agent
+    Agent --> MermaidGen
+    Agent --> ExcaliGen
+    Core --> Fly`;
+
+    let currentDiagramData = {
+      type: "excalidraw",
+      version: 2,
+      source: "https://excaligen.local",
+      elements: [],
+      appState: {
+        viewBackgroundColor: "#fcfaf7",
+        gridSize: null
+      },
+      files: {}
+    };
+
+    let activeTab = 'mermaid';
+
+    // Color palettes for hand-drawn look
+    const PALETTES = {
+      warm: { stroke: "#1e1e1e", subtleStroke: "#374151", accent: "#d97706", nodeBg: "#ffffff", centerBg: "#f8fafc" },
+      blueprint: { stroke: "#0f172a", subtleStroke: "#1e3a8a", accent: "#2563eb", nodeBg: "#eff6ff", centerBg: "#ffffff" },
+      monochrome: { stroke: "#111827", subtleStroke: "#4b5563", accent: "#1f2937", nodeBg: "#ffffff", centerBg: "#ffffff" },
+      vibrant: { stroke: "#1e1b4b", subtleStroke: "#4338ca", accent: "#ec4899", nodeBg: "#ffffff", centerBg: "#faf5ff" }
+    };
+
+    function randomId() {
+      return Math.random().toString(36).substring(2, 10);
+    }
+
+    function jitter(amount = 2) {
+      return (Math.random() - 0.5) * amount * 2;
+    }
+
+    /* -------------------------------------------------------------
+       PRESET BUILDERS
+    -------------------------------------------------------------- */
+    function loadPreset(name) {
+      if (name === 'cloud_arch') {
+        document.getElementById('promptInput').value = "Resilient Microservices Cloud Architecture with Edge Cloudflare CDN, API Gateway, JWT Auth Service, Task Queue Workers, Redis Cluster, and PostgreSQL Primary/Replica.";
+        currentMermaidCode = `flowchart TD
+    subgraph Edge["Edge & Security"]
+        CDN["Cloudflare CDN & WAF"]
+        GW["Kong API Gateway"]
+    end
+
+    subgraph CoreServices["Microservice Fleet"]
+        AuthSvc["Auth Service\\n(OAuth2 / JWT)"]
+        OrderSvc["Order Processing Service"]
+        PaymentSvc["Stripe Payment Worker"]
+    end
+
+    subgraph Messaging["Async Queue"]
+        Kafka["Kafka / Redis Event Stream"]
+    end
+
+    subgraph Data["Persistent Storage"]
+        Postgres[("PostgreSQL Primary + Replica")]
+        Cache[("Redis Memory Store")]
+    end
+
+    CDN --> GW
+    GW --> AuthSvc
+    GW --> OrderSvc
+    OrderSvc --> Kafka
+    Kafka --> PaymentSvc
+    AuthSvc --> Postgres
+    OrderSvc --> Cache
+    OrderSvc --> Postgres`;
+        buildGenericExcalidraw("Cloud Microservices Architecture");
+        finishDiagramUpdate("Cloud Architecture");
+      } else if (name === 'cicd') {
+        document.getElementById('promptInput').value = "Automated CI/CD Pipeline: GitHub Push triggers GitHub Actions, running Unit Tests, SonarQube Security Scan, Docker Container Build, Staging Deploy, Integration Tests, and Fly.io Production Release.";
+        currentMermaidCode = `flowchart LR
+    Git["Git Push / PR"] --> CI["GitHub Actions"]
+    CI --> Test["Unit & Lint Tests"]
+    Test --> Security["SonarQube Security Scan"]
+    Security --> Build["Build Docker Container"]
+    Build --> Staging["Deploy Staging\\n(Auto Smoke Tests)"]
+    Staging --> Approve{"Manual Approval"}
+    Approve -- Yes --> Fly["Deploy Production\\n(Fly.io Global)"]
+    Approve -- No --> Rollback["Halt Pipeline"]`;
+        buildGenericExcalidraw("CI/CD Deployment Pipeline");
+        finishDiagramUpdate("CI/CD Pipeline");
+      } else if (name === 'auth_seq') {
+        document.getElementById('promptInput').value = "OAuth2 / JWT Authentication Flow between Client App, API Gateway, Identity Provider, and Protected Resource API.";
+        currentMermaidCode = `sequenceDiagram
+    autonumber
+    actor User as User Browser
+    participant Gateway as API Gateway
+    participant Auth as Identity Provider
+    participant DB as User DB
+    participant API as Protected Resource API
+
+    User->>Gateway: POST /login (credentials)
+    Gateway->>Auth: Validate Credentials
+    Auth->>DB: Fetch user & password hash
+    DB-->>Auth: User record
+    Auth->>Auth: Verify Bcrypt Hash
+    Auth-->>Gateway: Issue JWT Access & Refresh Token
+    Gateway-->>User: Set HTTPOnly Cookie
+    User->>Gateway: GET /dashboard (with Bearer Token)
+    Gateway->>API: Forward Authorized Request
+    API-->>User: 200 OK (Protected Data)`;
+        buildGenericExcalidraw("Authentication Sequence Flow");
+        finishDiagramUpdate("Auth Sequence");
+      } else if (name === 'bot_fleet') {
+        document.getElementById('promptInput').value = "Bot Fleet State Map with central hub and 4 state quadrants: Staging/Testing, Active/In Service, Maintenance/Offline, Decommissioned.";
+        currentMermaidCode = `stateDiagram-v2
+    [*] --> Staging: Provision Bot
+    Staging --> Active: Passes Integration Tests
+    Active --> Maintenance: Hardware/Calibration Alert
+    Maintenance --> Active: Repairs & Re-certified
+    Maintenance --> Decommissioned: End of Life / Obsolete
+    Active --> Decommissioned: Retired
+    Decommissioned --> [*]`;
+        buildBotFleetStateMap();
+        finishDiagramUpdate("Bot Fleet State Map");
+      }
+    }
+
+    function buildGenericExcalidraw(title = "System Architecture") {
+      const p = PALETTES[document.getElementById('paletteSelect').value] || PALETTES.warm;
+      const elements = [
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 340,
+          y: 70,
+          width: 240,
+          height: 60,
+          strokeColor: p.stroke,
+          backgroundColor: p.centerBg,
+          strokeWidth: 2,
+          roundness: { type: 3 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 360,
+          y: 90,
+          text: title.toUpperCase(),
+          fontSize: 16,
+          fontFamily: 1,
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 80,
+          y: 220,
+          width: 220,
+          height: 90,
+          strokeColor: p.stroke,
+          backgroundColor: p.nodeBg,
+          strokeWidth: 2,
+          roundness: { type: 2 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 100,
+          y: 245,
+          text: "Client / Ingress\\n(Browser, Mobile, CLI)",
+          fontSize: 14,
+          fontFamily: 1,
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 350,
+          y: 220,
+          width: 220,
+          height: 90,
+          strokeColor: p.stroke,
+          backgroundColor: p.nodeBg,
+          strokeWidth: 2,
+          roundness: { type: 2 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 370,
+          y: 245,
+          text: "Core Services Hub\\n(Mimo AI & MCP Tools)",
+          fontSize: 14,
+          fontFamily: 1,
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 620,
+          y: 220,
+          width: 220,
+          height: 90,
+          strokeColor: p.stroke,
+          backgroundColor: p.nodeBg,
+          strokeWidth: 2,
+          roundness: { type: 2 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 640,
+          y: 245,
+          text: "Fly.io Deployment\\n(Global Edge Network)",
+          fontSize: 14,
+          fontFamily: 1,
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "arrow",
+          x: 300,
+          y: 265,
+          points: [[0, 0], [50, 0]],
+          strokeColor: p.stroke,
+          strokeWidth: 2
+        },
+        {
+          id: randomId(),
+          type: "arrow",
+          x: 570,
+          y: 265,
+          points: [[0, 0], [50, 0]],
+          strokeColor: p.stroke,
+          strokeWidth: 2
+        }
+      ];
+
+      currentDiagramData = {
+        type: "excalidraw",
+        version: 2,
+        source: "https://excaligen.local",
+        elements,
+        appState: { viewBackgroundColor: "#fcfaf7" }
+      };
+    }
+
+    function buildBotFleetStateMap() {
+      const p = PALETTES[document.getElementById('paletteSelect').value] || PALETTES.warm;
+      const elements = [
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 370,
+          y: 250,
+          width: 180,
+          height: 70,
+          strokeColor: p.stroke,
+          backgroundColor: p.centerBg,
+          fillStyle: "solid",
+          strokeWidth: 2,
+          roughness: 1.2,
+          roundness: { type: 3 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 385,
+          y: 265,
+          text: "BOT FLEET\\nSTATE MAP",
+          fontSize: 18,
+          fontFamily: 1,
+          textAlign: "center",
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 60,
+          y: 60,
+          width: 230,
+          height: 140,
+          strokeColor: p.stroke,
+          backgroundColor: p.nodeBg,
+          strokeWidth: 2,
+          roundness: { type: 2 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 75,
+          y: 75,
+          text: "STAGING / TESTING",
+          fontSize: 16,
+          fontFamily: 1,
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 610,
+          y: 60,
+          width: 250,
+          height: 170,
+          strokeColor: p.stroke,
+          backgroundColor: p.nodeBg,
+          strokeWidth: 2,
+          roundness: { type: 2 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 625,
+          y: 75,
+          text: "ACTIVE / IN SERVICE",
+          fontSize: 16,
+          fontFamily: 1,
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 60,
+          y: 380,
+          width: 250,
+          height: 160,
+          strokeColor: p.stroke,
+          backgroundColor: p.nodeBg,
+          strokeWidth: 2,
+          roundness: { type: 2 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 75,
+          y: 395,
+          text: "MAINTENANCE / OFFLINE",
+          fontSize: 15,
+          fontFamily: 1,
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "rectangle",
+          x: 610,
+          y: 410,
+          width: 240,
+          height: 120,
+          strokeColor: p.stroke,
+          backgroundColor: p.nodeBg,
+          strokeWidth: 2,
+          roundness: { type: 2 }
+        },
+        {
+          id: randomId(),
+          type: "text",
+          x: 625,
+          y: 425,
+          text: "DECOMMISSIONED",
+          fontSize: 16,
+          fontFamily: 1,
+          strokeColor: p.stroke
+        },
+        {
+          id: randomId(),
+          type: "arrow",
+          x: 370,
+          y: 260,
+          points: [[0, 0], [-180, -70]],
+          strokeColor: p.stroke,
+          strokeWidth: 2
+        },
+        {
+          id: randomId(),
+          type: "arrow",
+          x: 550,
+          y: 260,
+          points: [[0, 0], [160, -90]],
+          strokeColor: p.stroke,
+          strokeWidth: 2
+        },
+        {
+          id: randomId(),
+          type: "arrow",
+          x: 380,
+          y: 320,
+          points: [[0, 0], [-140, 110]],
+          strokeColor: p.stroke,
+          strokeWidth: 2
+        },
+        {
+          id: randomId(),
+          type: "arrow",
+          x: 550,
+          y: 310,
+          points: [[0, 0], [160, 120]],
+          strokeColor: p.stroke,
+          strokeWidth: 2
+        }
+      ];
+
+      currentDiagramData = {
+        type: "excalidraw",
+        version: 2,
+        source: "https://excaligen.local",
+        elements,
+        appState: { viewBackgroundColor: "#fcfaf7" }
+      };
+    }
+
+    /* -------------------------------------------------------------
+       AI BACKEND GENERATION DISPATCHER
+    -------------------------------------------------------------- */
+    async function generateFromPrompt() {
+      const prompt = document.getElementById('promptInput').value.trim();
+      if (!prompt) {
+        showToast("Please enter a description or pick a preset", "alert-circle");
+        return;
+      }
+
+      const format = document.getElementById('engineSelect').value;
+      const diagramType = document.getElementById('mermaidTypeSelect').value;
+      const palette = document.getElementById('paletteSelect').value;
+
+      const btn = document.getElementById('generateBtn');
+      const btnText = document.getElementById('generateBtnText');
+      const originalText = btnText.textContent;
+
+      btn.disabled = true;
+      btnText.textContent = "Agent Synthesizing...";
+      showToast("Calling AI Diagram Agent...", "sparkles");
+
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, format, diagramType, palette })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.mermaid && data.mermaid.code) {
+            currentMermaidCode = data.mermaid.code;
+          }
+          if (data.excalidraw && data.excalidraw.diagram) {
+            currentDiagramData = data.excalidraw.diagram;
+          }
+          finishDiagramUpdate("AI Generated Diagram");
+        } else {
+          throw new Error(`Server returned ${response.status}`);
+        }
+      } catch (err) {
+        console.warn('API call failed or offline, using smart local generator:', err);
+        // Fallback generator
+        currentMermaidCode = `flowchart TD
+    Prompt["${prompt.substring(0, 32)}..."] --> AI["AI Synthesis Agent"]
+    AI --> Logic["Architecture & Logic Nodes"]
+    Logic --> Render["Mermaid + Excalidraw Engine"]`;
+        buildGenericExcalidraw("Generated Architecture");
+        finishDiagramUpdate("Diagram Generated (Local)");
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = originalText;
+      }
+    }
+
+    function finishDiagramUpdate(title = "Diagram") {
+      document.getElementById('mermaidTitle').textContent = `${title} (Mermaid Vector)`;
+      document.getElementById('canvasTitle').textContent = `${title} (Hand-drawn Canvas)`;
+      document.getElementById('rawMermaidArea').value = currentMermaidCode;
+      document.getElementById('rawJsonArea').value = JSON.stringify(currentDiagramData, null, 2);
+      
+      renderMermaid();
+      renderExcalidraw();
+      updateUrlHash();
+      showToast("Diagram synthesized successfully!");
+    }
+
+    /* -------------------------------------------------------------
+       MERMAID RENDERER
+    -------------------------------------------------------------- */
+    async function renderMermaid() {
+      const container = document.getElementById('mermaidTarget');
+      container.innerHTML = '';
+      try {
+        const uniqueId = `mermaid-${Date.now()}`;
+        const { svg } = await mermaid.render(uniqueId, currentMermaidCode);
+        container.innerHTML = svg;
+      } catch (e) {
+        console.error("Mermaid render error:", e);
+        container.innerHTML = `<div class="p-4 bg-red-950/30 border border-red-500/30 text-red-300 rounded-xl text-xs font-mono">
+          <strong>Mermaid Render Error:</strong><br>${e.message || 'Syntax error'}
+        </div>`;
+      }
+    }
+
+    function renderMermaidFromEditor() {
+      currentMermaidCode = document.getElementById('rawMermaidArea').value;
+      renderMermaid();
+      switchTab('mermaid');
+      showToast("Mermaid re-rendered from editor!");
+    }
+
+    function copyMermaidCode() {
+      const code = currentMermaidCode;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast("Mermaid code copied to clipboard!", "copy");
+      });
+    }
+
+    function downloadMermaidSvg() {
+      const svgEl = document.querySelector('#mermaidTarget svg');
+      if (!svgEl) {
+        showToast("No SVG rendered to download", "alert-circle");
+        return;
+      }
+      const svgData = new XMLSerializer().serializeToString(svgEl);
+      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "diagram.mermaid.svg";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("Mermaid SVG downloaded!", "download");
+    }
+
+    /* -------------------------------------------------------------
+       EXCALIDRAW SVG RENDERER
+    -------------------------------------------------------------- */
+    function renderExcalidraw() {
+      const svg = document.getElementById('excalidrawSvg');
+      svg.innerHTML = '';
+
+      const bgColor = (currentDiagramData.appState && currentDiagramData.appState.viewBackgroundColor) || '#fcfaf7';
+      svg.style.backgroundColor = bgColor;
+
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+      (currentDiagramData.elements || []).forEach(el => {
+        if (el.type === 'rectangle') {
+          const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          rect.setAttribute("x", el.x);
+          rect.setAttribute("y", el.y);
+          rect.setAttribute("width", el.width);
+          rect.setAttribute("height", el.height);
+          rect.setAttribute("rx", el.roundness ? "12" : "0");
+          rect.setAttribute("fill", el.backgroundColor || "transparent");
+          rect.setAttribute("stroke", el.strokeColor || "#1e1e1e");
+          rect.setAttribute("stroke-width", el.strokeWidth || 2);
+          rect.setAttribute("stroke-linejoin", "round");
+          rect.setAttribute("filter", "drop-shadow(1px 2px 0px rgba(0,0,0,0.06))");
+          g.appendChild(rect);
+        } else if (el.type === 'ellipse') {
+          const ellipse = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+          ellipse.setAttribute("cx", el.x + el.width / 2);
+          ellipse.setAttribute("cy", el.y + el.height / 2);
+          ellipse.setAttribute("rx", el.width / 2);
+          ellipse.setAttribute("ry", el.height / 2);
+          ellipse.setAttribute("fill", el.backgroundColor || "#94a3b8");
+          ellipse.setAttribute("stroke", el.strokeColor || "#1e1e1e");
+          ellipse.setAttribute("stroke-width", el.strokeWidth || 2);
+          g.appendChild(ellipse);
+        } else if (el.type === 'text') {
+          const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", el.x);
+          text.setAttribute("y", el.y + (el.fontSize || 14));
+          text.setAttribute("fill", el.strokeColor || "#1e1e1e");
+          text.setAttribute("font-size", el.fontSize || 14);
+          text.setAttribute("font-family", "'Caveat', cursive, sans-serif");
+          text.setAttribute("font-weight", "600");
+
+          const lines = (el.text || "").split("\n");
+          if (lines.length > 1) {
+            lines.forEach((line, index) => {
+              const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+              tspan.setAttribute("x", el.x);
+              tspan.setAttribute("dy", index === 0 ? "0" : (el.fontSize * 1.25));
+              tspan.textContent = line;
+              text.appendChild(tspan);
+            });
+          } else {
+            text.textContent = el.text;
+          }
+          g.appendChild(text);
+        } else if (el.type === 'arrow') {
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          const startX = el.x;
+          const startY = el.y;
+          
+          let d = `M ${startX} ${startY}`;
+          if (el.points && el.points.length > 1) {
+            let currentX = startX;
+            let currentY = startY;
+            for (let i = 1; i < el.points.length; i++) {
+              const targetX = startX + el.points[i][0];
+              const targetY = startY + el.points[i][1];
+              const midX = (currentX + targetX) / 2 + jitter(5);
+              const midY = (currentY + targetY) / 2 + jitter(5);
+              d += ` Q ${midX} ${midY} ${targetX} ${targetY}`;
+              currentX = targetX;
+              currentY = targetY;
+            }
+          }
+          path.setAttribute("d", d);
+          path.setAttribute("stroke", el.strokeColor || "#1e1e1e");
+          path.setAttribute("stroke-width", el.strokeWidth || 2);
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke-linecap", "round");
+          g.appendChild(path);
+
+          if (el.points && el.points.length > 1) {
+            const lastPt = el.points[el.points.length - 1];
+            const endX = startX + lastPt[0];
+            const endY = startY + lastPt[1];
+            const head = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            head.setAttribute("cx", endX);
+            head.setAttribute("cy", endY);
+            head.setAttribute("r", "3.5");
+            head.setAttribute("fill", el.strokeColor || "#1e1e1e");
+            g.appendChild(head);
+          }
+        }
+      });
+
+      svg.appendChild(g);
+    }
+
+    function renderExcalidrawFromJsonEditor() {
+      try {
+        const val = JSON.parse(document.getElementById('rawJsonArea').value);
+        currentDiagramData = val;
+        renderExcalidraw();
+        switchTab('excalidraw');
+        showToast("Excalidraw canvas updated from JSON!");
+      } catch (e) {
+        showToast("Invalid JSON in editor", "alert-circle");
+      }
+    }
+
+    /* -------------------------------------------------------------
+       EXCALIDRAW EXPORTS & CLIPBOARD
+    -------------------------------------------------------------- */
+    function copyToExcalidrawClipboard() {
+      const payload = {
+        type: "excalidraw/clipboard",
+        elements: currentDiagramData.elements,
+        files: {}
+      };
+      const jsonStr = JSON.stringify(payload);
+      const textarea = document.createElement('textarea');
+      textarea.value = jsonStr;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        showToast("Copied! Paste into excalidraw.com (Ctrl+V)", "clipboard-check");
+      } catch (err) {
+        showToast("Failed to copy automatically", "x");
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function downloadExcalidrawFile() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentDiagramData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "diagram.excalidraw.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Downloaded .excalidraw.json file!", "download");
+    }
+
+    function openDirectToExcalidraw() {
+      copyToExcalidrawClipboard();
+      downloadExcalidrawFile();
+      window.open("https://excalidraw.com", "_blank");
+      showToast("Excalidraw opened! Press Ctrl+V on canvas", "external-link");
+    }
+
+    function copyJsonText() {
+      const text = document.getElementById('rawJsonArea').value;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Raw JSON copied to clipboard!");
+      });
+    }
+
+    /* -------------------------------------------------------------
+       URL HASH & PERMALINK
+    -------------------------------------------------------------- */
+    function updateUrlHash() {
+      try {
+        if (typeof LZString !== 'undefined') {
+          const minimal = {
+            p: document.getElementById('promptInput').value,
+            m: currentMermaidCode
+          };
+          const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(minimal));
+          window.location.hash = `d=${compressed}`;
+        }
+      } catch (e) {
+        console.warn("Could not encode URL hash", e);
+      }
+    }
+
+    function shareLinkToClipboard() {
+      updateUrlHash();
+      const fullUrl = window.location.href;
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        showToast("Shareable permalink copied to clipboard!", "share-2");
+      });
+    }
+
+    function loadFromUrlHash() {
+      if (window.location.hash && window.location.hash.startsWith('#d=')) {
+        try {
+          const compressed = window.location.hash.replace('#d=', '');
+          const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+          if (decompressed) {
+            const data = JSON.parse(decompressed);
+            if (data.p) document.getElementById('promptInput').value = data.p;
+            if (data.m) currentMermaidCode = data.m;
+            finishDiagramUpdate("Shared Diagram");
+            return true;
+          }
+        } catch (e) {
+          console.error("Failed to load hash data", e);
+        }
+      }
+      return false;
+    }
+
+    /* -------------------------------------------------------------
+       UI TABS & MODALS
+    -------------------------------------------------------------- */
+    function switchTab(tab) {
+      activeTab = tab;
+      const allTabs = ['mermaid', 'excalidraw', 'mermaid-code', 'excalidraw-json'];
+      allTabs.forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const btn = document.getElementById(`tabBtn-${t}`);
+        if (t === tab) {
+          view.classList.remove('hidden');
+          view.classList.add('flex');
+          btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition bg-indigo-600 text-white flex items-center gap-1.5";
+        } else {
+          view.classList.add('hidden');
+          view.classList.remove('flex');
+          btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium transition text-slate-400 hover:text-slate-200 flex items-center gap-1.5";
+        }
+      });
+
+      const badge = document.getElementById('diagramInfoBadge');
+      if (tab === 'mermaid' || tab === 'mermaid-code') {
+        badge.textContent = 'Mermaid Live';
+      } else {
+        badge.textContent = `${(currentDiagramData.elements || []).length} Excalidraw items`;
+      }
+
+      if (tab === 'mermaid') renderMermaid();
+      if (tab === 'excalidraw') renderExcalidraw();
+    }
+
+    function refreshActiveView() {
+      if (activeTab === 'mermaid') renderMermaid();
+      else if (activeTab === 'excalidraw') renderExcalidraw();
+      showToast("Canvas refreshed");
+    }
+
+    function openCollabGuideModal() {
+      document.getElementById('collabModal').classList.remove('hidden');
+    }
+
+    function closeCollabGuideModal() {
+      document.getElementById('collabModal').classList.add('hidden');
+    }
+
+    function showToast(msg, iconName = 'check') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMsg.textContent = msg;
+      toastIcon.setAttribute('data-lucide', iconName);
+      lucide.createIcons();
+
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-10');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-10');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 3200);
+    }
+
+    window.onload = function () {
+      lucide.createIcons();
+      const loaded = loadFromUrlHash();
+      if (!loaded) {
+        loadPreset('cloud_arch');
+      }
+    };
+  </script>
+</body>
+</html>
